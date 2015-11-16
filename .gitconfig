@@ -1,0 +1,13 @@
+[user]
+  name = John Doyle
+  email = john.c.doyle@gmail.com
+[core]
+  editor = vi
+  excludesfile = ~/.gitignore
+[color]
+  branch = auto
+  diff = auto
+  interactive = auto
+  status = auto
+[web]
+  browser = google-chrome

@@ -1,0 +1,78 @@
+---
+- hosts: all
+
+  vars:
+    
+    applications:
+      - google-chrome
+      - google-drive
+      - iterm2
+      - intellij-idea-ce
+      - sublime-text
+      - java
+      - skype
+
+    zsh_path: /bin/zsh
+
+    home: "{{ lookup('env','HOME') }}"
+
+    install_oh_my_zsh:  true
+
+  tasks:
+
+    - name: Tap homebrew/dupes
+      shell: brew tap homebrew/dupes
+
+    - name: Tap homebrew/binary
+      shell: brew tap homebrew/binary
+
+    - name: Install libraries and apps with homebrew
+      homebrew: name={{ item }} state=present
+      with_items:
+        - wget
+        - vim
+
+    - name: Check for installed apps(casks)
+      shell: brew cask list | grep {{ item }}
+      register: installed_applications
+      with_items: applications
+      ignore_errors: true
+ 
+    - name: Install apps with brew-cask
+      shell: brew cask install {{ item }}
+      with_items: applications
+      when: "{{ item not in installed_applications.results|map(attribute='stdout') }}"
+  
+    - name: Determine if zsh is default/current shell
+      shell: echo $SHELL
+      register: current_shell
+
+    - name: Enable zsh in /etc/shells
+      shell: sudo /bin/sh -c 'grep -q "{{ zsh_path }}" /etc/shells || echo "{{ zsh_path }}" >> /etc/shells'
+      when: current_shell.stdout != '/bin/zsh'
+
+    - name: Set zsh as default shell
+      shell: chsh -s {{ zsh_path }}
+      when: current_shell.stdout != '/bin/zsh'
+
+    - name: Install oh-my-zsh
+      shell: sh -c "$(curl -fsSL https://raw.github.com/robbyrussell/oh-my-zsh/master/tools/install.sh)"
+      when: install_oh_my_zsh == true
+      tags: install_oh_my_zsh
+
+    - name: Update oh-my-zsh plugins
+      shell: sed -i "" "s/plugins=(git)/plugins=(git bundler osx)/g" ~/.zshrc
+      when: install_oh_my_zsh == true
+      tags: install_oh_my_zsh
+
+    - name: Move .osx
+      shell: cp .osx ~/
+
+    - name: Move .vimrc
+      shell: cp .vimrc ~/
+
+    - name: Move .gitconfig
+      shell: cp .gitconfig ~/
+
+    - name: Update dock
+      shell: cp com.apple.dock.plist ~/Library/Preferences
